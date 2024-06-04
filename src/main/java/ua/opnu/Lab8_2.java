@@ -3,54 +3,67 @@ package ua.opnu;
 import com.aparapi.Kernel;
 import com.aparapi.Range;
 
+import java.util.Arrays;
 import java.util.Random;
+
 
 public class Lab8_2 {
     public static void main(String[] _args) {
 
         final int size = 1024 * 5; // размер массива А
+//        final int size = 10; // размер массива А
         final int[] A = createRandomArray(size); // Заполните массив случайными значениями. Способ заполнения массива не имеет значения
-        final int[] indexArrayForGpuComp = new int[1]; // массив для индекса второго четного элемента на GPU
-        final int[] indexArrayForCpuComp = new int[1]; // массив для индекса второго четного элемента на CPU
+        System.out.println(Arrays.toString(A));
+        final int[] indexArrayForGpuComp = new int[size]; // в эти массивы будем помещать индексы элементов, которые удовлетворяют условию.
+        final int[] indexArrayForCpuComp = new int[size];
+//        final int[] countSize = {0}; // подсчет элементов, удовлетворяющие условию.
+//        final int[] secondEvenElement = {0}; // подсчет элементов, удовлетворяющие условию.
+        final int secondEvenElement; // подсчет элементов, удовлетворяющие условию.
 
+        final float[] sum = new float[size];
         // GPU
         Kernel kernel = new Kernel() {
             @Override
             public void run() {
                 int gid = getGlobalId();
-                // Проверка на четность
-                if ((int) A[gid] % 2 == 0) {
-                    synchronized (indexArrayForGpuComp) {
-                        if (indexArrayForGpuComp[0] == 0) {
-                            indexArrayForGpuComp[0] = gid + 1; // сохраняем индекс первого четного элемента (добавляем 1, чтобы избежать нуля)
-                        } else if (indexArrayForGpuComp[0] > 0 && indexArrayForGpuComp[0] < gid + 1) {
-                            indexArrayForGpuComp[0] = -(gid + 1); // сохраняем индекс второго четного элемента в отрицательном виде
-                        }
-                    }
-                }
+//                sum[gid] = (float) (Math.cos(Math.sin(A[gid])) + Math.sin(Math.cos(A[gid])));
+                if (A[gid] % 2 == 0)
+                    indexArrayForGpuComp[gid] = gid;
             }
         };
 
-        // Выполнение на GPU
+        // Execute Kernel.
         kernel.execute(Range.create(size));
-        // Получение индекса второго четного элемента
-        int secondEvenIndexGpu = -indexArrayForGpuComp[0] - 1;
-        // Вывод результатов на GPU
+        // Report target execution mode: GPU or JTP (Java Thread Pool).
         System.out.println("Device: " + kernel.getTargetDevice().getShortDescription());
         System.out.println("Gpu execution time: " + kernel.getExecutionTime() + " ms");
-        System.out.println("Второй четный элемент на GPU находится на индексе: " + secondEvenIndexGpu + " и имеет значение: " + A[secondEvenIndexGpu]);
-        // Освобождение ресурсов GPU
+        System.out.println(Arrays.toString(indexArrayForGpuComp));
+
+        secondEvenElement = findSecondNonZeroElement(indexArrayForGpuComp);
+        if (secondEvenElement != -1 ) {
+        System.out.println("Второй четный элемент находится на индексе: " + secondEvenElement + " и имеет значение: " + A[secondEvenElement]);
+        } else {
+            System.out.println("Второй четный элемент не найден.");
+        }
+
+        // Dispose Kernel resources.
         kernel.dispose();
 
-        // CPU
-        long cpuStartTime = System.nanoTime();
-        int secondEvenIndexCpu = findSecondEvenElement(A);
-        long cpuEndTime = System.nanoTime();
 
-        // Вывод результатов на CPU
+        // CPU
+        final float[] sum2 = new float[size];
+        long startTime = System.currentTimeMillis();
+        // Найти второй четный элемент
+        int secondEvenIndex = findSecondEvenElement(A);
+        long endTime = System.currentTimeMillis() - startTime;
         System.out.println("Java Vendor: " + System.getProperty("java.vendor"));
-        System.out.println("Cpu execution time: " + (cpuEndTime - cpuStartTime) / 1000000 + " ms");
-        System.out.println("Второй четный элемент на CPU находится на индексе: " + secondEvenIndexCpu + " и имеет значение: " + A[secondEvenIndexCpu]);
+        System.out.println("Cpu execution time: " + endTime + " ms");
+        if (secondEvenIndex != -1) {
+            System.out.println("Второй четный элемент находится на индексе: " + secondEvenIndex + " и имеет значение: " + A[secondEvenIndex]);
+        } else {
+            System.out.println("Второй четный элемент не найден.");
+        }
+
     }
 
     // Функция для создания и заполнения массива случайными значениями
@@ -59,7 +72,7 @@ public class Lab8_2 {
         Random random = new Random();
 
         for (int i = 0; i < size; i++) {
-            array[i] = random.nextInt() * 100; // Генерация случайного значения от 0.0 до 100.0
+            array[i] = random.nextInt(10000)+1; // Генерация случайного значения от 0.0 до 1.0
         }
 
         return array;
@@ -78,4 +91,18 @@ public class Lab8_2 {
         }
         return -1; // Возвращаем -1, если второй четный элемент не найден
     }
+
+    public static int findSecondNonZeroElement(int[] array) {
+        int count = 0;
+        for (int i = 0; i < array.length; i++) {
+            if (array[i] != 0) {
+                count++;
+                if (count == 2) {
+                    return i;
+                }
+            }
+        }
+        return -1; // Возвращаем -1, если второй ненулевой элемент не найден
+    }
+
 }
