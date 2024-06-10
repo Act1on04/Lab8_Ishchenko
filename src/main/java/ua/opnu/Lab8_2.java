@@ -11,11 +11,11 @@ public class Lab8_2 {
     public static void main(String[] _args) {
 
         final int size = 1024 * 5; // размер массива А
-//        final int size = 10; // размер массива А
-        final int[] A = createRandomArray(size); // Заполните массив случайными значениями. Способ заполнения массива не имеет значения
+        // Заполните массив случайными значениями. Способ заполнения массива не имеет значения
+        final int[] A = createRandomArray(size);
         System.out.println(Arrays.toString(A));
-        final int[] indexArrayForGpuComp = new int[size]; // в эти массивы будем помещать индексы элементов, которые удовлетворяют условию.
-        final int[] indexArrayForCpuComp = new int[size];
+        // в эти массивы будем помещать индексы элементов, которые удовлетворяют условию.
+        final int[] indexArrayForGpuComp = new int[size];
 //        final int[] countSize = {0}; // подсчет элементов, удовлетворяющие условию.
 //        final int[] secondEvenElement = {0}; // подсчет элементов, удовлетворяющие условию.
         final int secondEvenElement; // подсчет элементов, удовлетворяющие условию.
